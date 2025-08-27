@@ -51,7 +51,7 @@ jobs:
         safety check --file requirements.txt --output json --save-json safety-report.json || true
 
     - name: Upload Safety report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: safety-report
@@ -69,7 +69,7 @@ jobs:
         npm audit --audit-level=moderate --json > npm-audit-report.json || true
 
     - name: Upload NPM audit report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: npm-audit-report
@@ -137,7 +137,7 @@ jobs:
         npx license-checker --json > node-licenses.json || true
 
     - name: Upload license reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: license-reports
