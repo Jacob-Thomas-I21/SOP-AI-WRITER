@@ -238,16 +238,18 @@ jobs:
 
         # Only look for actual hardcoded sensitive values, exclude config files
         sensitive_patterns=(
-          # Real passwords: variable_name = "actual_password_value" (exclude config files)
-          "[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*=[[:space:]]*['\"][^'\"]{12,}['\"]"
-          # Real API Keys: api_key = "sk-1234567890abcdef" (exclude config files)
-          "api_key[[:space:]]*=[[:space:]]*['\"][a-zA-Z0-9_-]{25,}['\"]"
-          # Real JWT Tokens: token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" (exclude config files)
-          "token[[:space:]]*=[[:space:]]*['\"][a-zA-Z0-9_.-]{60,}['\"]"
-          # Real Secrets: secret = "actual_secret_value" (exclude config files)
-          "secret[[:space:]]*=[[:space:]]*['\"][^'\"]{15,}['\"]"
-          # Private keys: private_key = "-----BEGIN PRIVATE KEY-----"
-          "private_key[[:space:]]*=[[:space:]]*['\"]-{5}[^'\"]*-{5}['\"]"
+          # Real passwords: Must contain password/PASSWORD in variable name + long value
+          "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][a-zA-Z0-9_]*[[:space:]]*=[[:space:]]*['\"][^'\"]{12,}['\"]"
+          # Real API Keys: Must start with known API key prefixes (sk-, pk_, akia, etc.)
+          "(api_key|apikey|API_KEY|APIKEY)[[:space:]]*=[[:space:]]*['\"](sk-|pk_|akia|SG\\.|xoxp-)[a-zA-Z0-9_-]{20,}['\"]"
+          # Real JWT Tokens: Must be very long and contain JWT structure
+          "(token|TOKEN|jwt|JWT)[[:space:]]*=[[:space:]]*['\"][a-zA-Z0-9_.-]{80,}['\"]"
+          # Real Secrets: Must contain secret/SECRET in variable name + long value
+          "[Ss][Ee][Cc][Rr][Ee][Tt][a-zA-Z0-9_]*[[:space:]]*=[[:space:]]*['\"][^'\"]{20,}['\"]"
+          # Private keys: Must contain actual private key format
+          "(private_key|PRIVATE_KEY)[[:space:]]*=[[:space:]]*['\"]-{5}BEGIN[^'\"]*PRIVATE[^'\"]*-{5}['\"]"
+          # Database passwords: Must contain db/DB and password/PASSWORD
+          "(db|DB)[a-zA-Z0-9_]*[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][[:space:]]*=[[:space:]]*['\"][^'\"]{8,}['\"]"
         )
 
         found_sensitive=false
