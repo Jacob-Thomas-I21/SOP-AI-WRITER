@@ -2,14 +2,15 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import json
 
+
 class PharmaceuticalPromptBuilder:
     """Advanced prompt builder for pharmaceutical SOP generation with regulatory compliance."""
-    
+
     def __init__(self):
         self.pharmaceutical_context = self._get_pharmaceutical_context()
         self.regulatory_frameworks = self._get_regulatory_frameworks()
         self.gmp_principles = self._get_gmp_principles()
-        
+
     def _get_pharmaceutical_context(self) -> str:
         """Get pharmaceutical manufacturing context."""
         return """
@@ -25,7 +26,7 @@ class PharmaceuticalPromptBuilder:
         - Environmental monitoring and contamination control
         - Personnel training and qualification requirements
         """
-    
+
     def _get_regulatory_frameworks(self) -> Dict[str, str]:
         """Get regulatory framework descriptions."""
         return {
@@ -63,24 +64,24 @@ class PharmaceuticalPromptBuilder:
             - Covers medicinal products for human and veterinary use
             - Details quality management system requirements
             - Emphasizes risk management and contamination control
-            """
+            """,
         }
-    
+
     def _get_gmp_principles(self) -> List[str]:
         """Get core GMP principles."""
         return [
             "Manufacturing processes are clearly defined and controlled",
-            "Critical processes are validated to ensure consistency and compliance", 
+            "Critical processes are validated to ensure consistency and compliance",
             "All necessary facilities are provided including qualified personnel, adequate space, equipment and systems",
             "Clear instructions and procedures are written in clear, unambiguous language",
-            "Operators are trained to carry out instructions correctly", 
+            "Operators are trained to carry out instructions correctly",
             "Records are made during manufacture to show all steps were followed",
             "Any significant deviations are fully recorded and investigated",
             "Records of manufacture and distribution enable complete history tracing",
             "Distribution minimizes any risk to product quality",
-            "System exists to recall any batch of product from sale or supply"
+            "System exists to recall any batch of product from sale or supply",
         ]
-    
+
     def build_sop_prompt(
         self,
         title: str,
@@ -89,10 +90,10 @@ class PharmaceuticalPromptBuilder:
         guideline_content: str,
         regulatory_framework: List[str] = None,
         department: str = None,
-        additional_context: Dict[str, Any] = None
+        additional_context: Dict[str, Any] = None,
     ) -> str:
         """Build comprehensive pharmaceutical SOP generation prompt."""
-        
+
         # System prompt with pharmaceutical expertise
         system_prompt = f"""You are an expert pharmaceutical manufacturing SOP authoring assistant with deep knowledge of:
         - FDA 21 CFR Part 211 and related regulations
@@ -124,7 +125,9 @@ class PharmaceuticalPromptBuilder:
             regulatory_context = "\nAPPLICABLE REGULATORY FRAMEWORKS:\n"
             for framework in regulatory_framework:
                 if framework.lower() in self.regulatory_frameworks:
-                    regulatory_context += f"\n{self.regulatory_frameworks[framework.lower()]}\n"
+                    regulatory_context += (
+                        f"\n{self.regulatory_frameworks[framework.lower()]}\n"
+                    )
 
         # Build department-specific context
         department_context = ""
@@ -233,9 +236,9 @@ class PharmaceuticalPromptBuilder:
             - Address spare parts management and qualification
             - Detail calibration and verification procedures
             - Include maintenance record keeping and trending
-            """
+            """,
         }
-        
+
         return department_contexts.get(department.lower(), "")
 
     def _build_gmp_requirements(self) -> str:
@@ -243,7 +246,7 @@ class PharmaceuticalPromptBuilder:
         gmp_text = "GOOD MANUFACTURING PRACTICE (GMP) REQUIREMENTS:\n"
         for i, principle in enumerate(self.gmp_principles, 1):
             gmp_text += f"{i}. {principle}\n"
-        
+
         gmp_text += """
         DATA INTEGRITY (ALCOA+) PRINCIPLES TO EMBED:
         - Attributable: All data must be traceable to the individual who created it
@@ -267,7 +270,7 @@ class PharmaceuticalPromptBuilder:
         - Monitor and review risk control effectiveness
         - Document risk management activities
         """
-        
+
         return gmp_text
 
     def build_template_prompt(
@@ -275,13 +278,13 @@ class PharmaceuticalPromptBuilder:
         template_name: str,
         category: str,
         regulatory_framework: List[str],
-        sections: List[str]
+        sections: List[str],
     ) -> str:
         """Build prompt for creating pharmaceutical SOP templates."""
-        
+
         system_prompt = """You are an expert pharmaceutical template designer specializing in 
         creating regulatory-compliant SOP templates for pharmaceutical manufacturing operations."""
-        
+
         user_prompt = f"""Create a comprehensive SOP template with the following specifications:
 
         TEMPLATE NAME: {template_name}
@@ -301,19 +304,17 @@ class PharmaceuticalPromptBuilder:
         7. Change control considerations
 
         Generate the complete template structure with detailed guidance for each section."""
-        
+
         return f"{system_prompt}\n\n{user_prompt}"
 
     def build_validation_prompt(
-        self,
-        sop_content: str,
-        regulatory_requirements: List[str]
+        self, sop_content: str, regulatory_requirements: List[str]
     ) -> str:
         """Build prompt for validating SOP content against regulatory requirements."""
-        
+
         system_prompt = """You are a pharmaceutical regulatory compliance expert specializing in 
         SOP validation and regulatory inspection preparedness."""
-        
+
         user_prompt = f"""Validate the following SOP content against pharmaceutical regulatory requirements:
 
         SOP CONTENT TO VALIDATE:
@@ -332,24 +333,24 @@ class PharmaceuticalPromptBuilder:
         7. Recommended improvements
 
         Format as structured compliance report."""
-        
+
         return f"{system_prompt}\n\n{user_prompt}"
 
     def build_training_prompt(
-        self,
-        base_content: str,
-        pharmaceutical_examples: List[Dict[str, Any]]
+        self, base_content: str, pharmaceutical_examples: List[Dict[str, Any]]
     ) -> str:
         """Build training prompt for pharmaceutical domain fine-tuning."""
-        
+
         training_examples = []
         for example in pharmaceutical_examples:
-            training_examples.append(f"""
+            training_examples.append(
+                f"""
             INPUT: {example.get('input', '')}
             OUTPUT: {example.get('output', '')}
             CONTEXT: {example.get('context', '')}
-            """)
-        
+            """
+            )
+
         prompt = f"""
         PHARMACEUTICAL SOP TRAINING DATA
 
@@ -368,7 +369,7 @@ class PharmaceuticalPromptBuilder:
         GMP PRINCIPLES:
         {chr(10).join(f'{i}. {principle}' for i, principle in enumerate(self.gmp_principles, 1))}
         """
-        
+
         return prompt
 
     def get_prompt_templates(self) -> Dict[str, str]:
@@ -381,34 +382,38 @@ class PharmaceuticalPromptBuilder:
             "change_control": "Template for change management procedures with impact assessments",
             "deviation_investigation": "Template for deviation handling with root cause analysis",
             "calibration": "Template for instrument calibration with acceptance criteria",
-            "training": "Template for personnel training with competency assessments"
+            "training": "Template for personnel training with competency assessments",
         }
 
     def build_context_aware_prompt(
         self,
         base_prompt: str,
         user_history: List[Dict[str, Any]] = None,
-        system_performance: Dict[str, Any] = None
+        system_performance: Dict[str, Any] = None,
     ) -> str:
         """Build context-aware prompt incorporating user history and system learning."""
-        
+
         context_additions = []
-        
+
         if user_history:
             context_additions.append("PREVIOUS USER INTERACTIONS:")
             for interaction in user_history[-5:]:  # Last 5 interactions
-                context_additions.append(f"- {interaction.get('type', 'unknown')}: {interaction.get('summary', '')}")
-        
+                context_additions.append(
+                    f"- {interaction.get('type', 'unknown')}: {interaction.get('summary', '')}"
+                )
+
         if system_performance:
-            context_additions.append(f"""
+            context_additions.append(
+                f"""
             SYSTEM PERFORMANCE CONTEXT:
             - Average quality score: {system_performance.get('avg_quality_score', 'N/A')}
             - Common improvement areas: {', '.join(system_performance.get('improvement_areas', []))}
             - User satisfaction: {system_performance.get('user_satisfaction', 'N/A')}
-            """)
-        
+            """
+            )
+
         if context_additions:
             enhanced_prompt = f"{base_prompt}\n\nCONTEXT AWARENESS:\n{chr(10).join(context_additions)}\n\nUse this context to improve output quality and relevance."
             return enhanced_prompt
-        
+
         return base_prompt

@@ -41,7 +41,7 @@ class UserBase(SQLModel):
     employee_id: Optional[str] = Field(default=None, unique=True, max_length=50)
     phone: Optional[str] = Field(default=None, max_length=20)
     is_active: bool = Field(default=True, index=True)
-    
+
     # Pharmaceutical-specific fields
     certifications: List[PharmaceuticalCertification] = Field(default_factory=list)
     training_completed: bool = Field(default=False, index=True)
@@ -52,41 +52,43 @@ class UserBase(SQLModel):
 
 class User(UserBase, table=True):
     __tablename__ = "users"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: str = Field(unique=True, index=True, max_length=36)
     password_hash: str = Field(max_length=255)
     status: UserStatus = Field(default=UserStatus.ACTIVE, index=True)
-    
+
     # Override fields for SQLAlchemy compatibility
     email: str = Field(unique=True, index=True, max_length=255)
-    certifications: List[PharmaceuticalCertification] = Field(default_factory=list, sa_column=Column(JSON))
-    
+    certifications: List[PharmaceuticalCertification] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: Optional[datetime] = Field(default=None)
     last_login: Optional[datetime] = Field(default=None)
     password_changed_at: Optional[datetime] = Field(default=None)
-    
+
     # Security fields
     failed_login_attempts: int = Field(default=0)
     locked_until: Optional[datetime] = Field(default=None)
     must_change_password: bool = Field(default=False)
     two_factor_enabled: bool = Field(default=False)
     two_factor_secret: Optional[str] = Field(default=None, max_length=32)
-    
+
     # Pharmaceutical compliance
     digital_signature: Optional[str] = Field(default=None, max_length=1000)
     signature_verified: bool = Field(default=False)
     compliance_acknowledgment_date: Optional[datetime] = Field(default=None)
     data_integrity_training_completed: bool = Field(default=False)
-    
+
     # Activity tracking
     login_count: int = Field(default=0)
     sop_created_count: int = Field(default=0)
     sop_approved_count: int = Field(default=0)
     last_activity: Optional[datetime] = Field(default=None)
-    
+
     # Session management
     current_session_id: Optional[str] = Field(default=None, max_length=100)
     session_expires_at: Optional[datetime] = Field(default=None)
@@ -94,16 +96,18 @@ class User(UserBase, table=True):
 
 class UserCreate(UserBase):
     """Create user request model."""
+
     user_id: str
     password: str = Field(min_length=8, max_length=100)
     confirm_password: str = Field(min_length=8, max_length=100)
-    
+
     def validate_passwords_match(self) -> bool:
         return self.password == self.confirm_password
 
 
 class UserUpdate(SQLModel):
     """Update user model."""
+
     email: Optional[EmailStr] = None
     full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     role: Optional[UserRole] = None
@@ -118,6 +122,7 @@ class UserUpdate(SQLModel):
 
 class UserResponse(UserBase):
     """User response model."""
+
     id: int
     user_id: str
     status: UserStatus
@@ -133,6 +138,7 @@ class UserResponse(UserBase):
 
 class UserLogin(BaseModel):
     """User login model."""
+
     username_or_email: str
     password: str
     remember_me: bool = False
@@ -141,6 +147,7 @@ class UserLogin(BaseModel):
 
 class UserLoginResponse(BaseModel):
     """User login response model."""
+
     access_token: str
     token_type: str = "bearer"
     expires_in: int
@@ -151,16 +158,18 @@ class UserLoginResponse(BaseModel):
 
 class PasswordChangeRequest(BaseModel):
     """Password change request model."""
+
     current_password: str
     new_password: str = Field(min_length=8, max_length=100)
     confirm_new_password: str = Field(min_length=8, max_length=100)
-    
+
     def validate_passwords_match(self) -> bool:
         return self.new_password == self.confirm_new_password
 
 
 class UserSearchFilters(BaseModel):
     """Search and filter model for users."""
+
     username: Optional[str] = None
     email: Optional[str] = None
     full_name: Optional[str] = None
@@ -170,42 +179,46 @@ class UserSearchFilters(BaseModel):
     is_active: Optional[bool] = True
     training_completed: Optional[bool] = None
     signature_verified: Optional[bool] = None
-    
+
     # Date filters
     created_after: Optional[datetime] = None
     created_before: Optional[datetime] = None
     last_login_after: Optional[datetime] = None
     last_login_before: Optional[datetime] = None
-    
+
     # Pagination
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
-    
+
     # Sorting
-    sort_by: Optional[str] = Field(default="created_at", regex=r"^(created_at|updated_at|full_name|username|last_login|sop_created_count)$")
+    sort_by: Optional[str] = Field(
+        default="created_at",
+        regex=r"^(created_at|updated_at|full_name|username|last_login|sop_created_count)$",
+    )
     sort_order: Optional[str] = Field(default="desc", regex=r"^(asc|desc)$")
 
 
 class UserActivitySummary(BaseModel):
     """User activity summary."""
+
     user_id: str
     username: str
     full_name: str
     role: UserRole
     department: Optional[str] = None
-    
+
     # Activity metrics
     total_logins: int
     last_login: Optional[datetime] = None
     sops_created: int
     sops_approved: int
     templates_used: int
-    
+
     # Time-based activity
     logins_last_30_days: int
     sops_created_last_30_days: int
     average_session_duration_minutes: Optional[float] = None
-    
+
     # Compliance metrics
     training_up_to_date: bool
     certification_status: List[PharmaceuticalCertification]
@@ -215,6 +228,7 @@ class UserActivitySummary(BaseModel):
 
 class TwoFactorSetup(BaseModel):
     """Two-factor authentication setup."""
+
     qr_code_url: str
     secret_key: str
     backup_codes: List[str]
@@ -222,5 +236,6 @@ class TwoFactorSetup(BaseModel):
 
 class TwoFactorVerification(BaseModel):
     """Two-factor authentication verification."""
+
     verification_code: str
     backup_code: Optional[str] = None

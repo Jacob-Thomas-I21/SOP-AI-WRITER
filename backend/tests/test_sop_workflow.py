@@ -18,6 +18,12 @@ from app.services.ollama_client import OllamaClient
 from app.services.pdf_generator import PDFGenerator
 from app.services.validation_service import PharmaceuticalValidationService
 
+# Configure pytest
+pytestmark = pytest.mark.filterwarnings(
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+)
+
 client = TestClient(app)
 
 @pytest.fixture

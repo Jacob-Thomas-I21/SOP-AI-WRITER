@@ -23,10 +23,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login
 
 
 @router.post("/register", response_model=UserResponse)
-async def register_user(
-    user_data: UserCreate,
-    session: Session = Depends(get_session)
-):
+async def register_user(user_data: UserCreate, session: Session = Depends(get_session)):
     """Register new user for the system."""
 
     try:
@@ -38,7 +35,7 @@ async def register_user(
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email already exists"
+                detail="User with this email already exists",
             )
 
         # Create new user
@@ -48,14 +45,13 @@ async def register_user(
             department=user_data.department,
             role=user_data.role,
             is_active=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         # Hash password
         user.hashed_password = bcrypt.hashpw(
-            user_data.password.encode('utf-8'),
-            bcrypt.gensalt()
-        ).decode('utf-8')
+            user_data.password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
 
         session.add(user)
         session.commit()
@@ -67,7 +63,7 @@ async def register_user(
             f"New user registered: {user.email}",
             event_type="user_registration",
             user_id=str(user.id),
-            compliance_context="user_management"
+            compliance_context="user_management",
         )
 
         return UserResponse.from_orm(user)
@@ -76,14 +72,14 @@ async def register_user(
         logger.error(f"User registration failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed"
+            detail="Registration failed",
         )
 
 
 @router.post("/login")
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
     """Authenticate user."""
 
@@ -95,18 +91,15 @@ async def login_user(
 
         if not user or not user.is_active:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
             )
 
         # Verify password
         if not bcrypt.checkpw(
-            form_data.password.encode('utf-8'),
-            user.hashed_password.encode('utf-8')
+            form_data.password.encode("utf-8"), user.hashed_password.encode("utf-8")
         ):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
             )
 
         # Create access token
@@ -124,13 +117,13 @@ async def login_user(
             f"User login successful: {user.email}",
             event_type="user_login",
             user_id=str(user.id),
-            compliance_context="authentication"
+            compliance_context="authentication",
         )
 
         return {
             "access_token": access_token,
             "token_type": "bearer",
-            "user": UserResponse.from_orm(user)
+            "user": UserResponse.from_orm(user),
         }
 
     except HTTPException:
@@ -138,33 +131,28 @@ async def login_user(
     except Exception as e:
         logger.error(f"Login failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Login failed"
         )
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
-    current_user: User = Depends(get_current_user)
-):
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information."""
     return UserResponse.from_orm(current_user)
 
 
 @router.post("/logout")
-async def logout_user(
-    current_user: User = Depends(get_current_user)
-):
+async def logout_user(current_user: User = Depends(get_current_user)):
     """Logout user (client should discard token)."""
-    
+
     log_regulatory_event(
         logger,
         f"User logout: {current_user.email}",
         event_type="user_logout",
         user_id=str(current_user.id),
-        compliance_context="authentication"
+        compliance_context="authentication",
     )
-    
+
     return {"message": "Successfully logged out"}
 
 
@@ -179,6 +167,6 @@ async def auth_health_check():
             "user_authentication": "active",
             "role_based_access": "enabled",
             "audit_logging": "operational",
-            "password_security": "bcrypt_encryption"
-        }
+            "password_security": "bcrypt_encryption",
+        },
     }

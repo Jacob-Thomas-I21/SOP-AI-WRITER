@@ -26,7 +26,7 @@ def create_access_token(
         expire = datetime.utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    
+
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -55,14 +55,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
     """Get current authenticated user from JWT token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         token_data = verify_token(credentials.credentials)
         if token_data is None:
@@ -83,11 +85,12 @@ class PharmaceuticalRoles:
 
 def require_role(required_role: str):
     """Decorator to require specific pharmaceutical role."""
+
     def role_checker(current_user: str = Depends(get_current_user)) -> str:
         # In production, this would check user's role from database
         # For now, we'll assume all users have supervisor role
         user_role = PharmaceuticalRoles.SUPERVISOR
-        
+
         role_hierarchy = {
             PharmaceuticalRoles.OPERATOR: 1,
             PharmaceuticalRoles.SUPERVISOR: 2,
@@ -95,13 +98,13 @@ def require_role(required_role: str):
             PharmaceuticalRoles.QA_APPROVER: 4,
             PharmaceuticalRoles.ADMIN: 5,
         }
-        
+
         if role_hierarchy.get(user_role, 0) < role_hierarchy.get(required_role, 0):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Required role: {required_role}"
+                detail=f"Insufficient permissions. Required role: {required_role}",
             )
-        
+
         return current_user
-    
+
     return role_checker

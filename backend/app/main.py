@@ -46,10 +46,7 @@ app = FastAPI(
 )
 
 # Security middleware
-app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "*"]
-)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "*"])
 
 # CORS middleware
 app.add_middleware(
@@ -58,7 +55,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
 )
 
 
@@ -66,28 +63,28 @@ app.add_middleware(
 async def add_process_time_header(request: Request, call_next):
     """Add processing time header and basic security headers."""
     start_time = time.time()
-    
+
     # Add request ID for tracing
     request_id = request.headers.get("x-request-id", f"req_{int(time.time() * 1000)}")
-    
+
     response = await call_next(request)
-    
+
     # Calculate processing time
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     response.headers["X-Request-ID"] = request_id
-    
+
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
+
     # Pharmaceutical compliance headers
     response.headers["X-FDA-21-CFR-Part-11"] = "compliant"
     response.headers["X-Data-Integrity"] = "validated"
     response.headers["X-Audit-Trail"] = "enabled"
-    
+
     return response
 
 
@@ -114,8 +111,8 @@ async def value_error_handler(request: Request, exc: ValueError):
             "error": "Validation Error",
             "message": str(exc),
             "request_id": request.headers.get("x-request-id"),
-            "pharmaceutical_compliance": "error_logged_for_audit"
-        }
+            "pharmaceutical_compliance": "error_logged_for_audit",
+        },
     )
 
 
@@ -131,15 +128,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "status_code": exc.status_code,
             "request_id": request.headers.get("x-request-id"),
             "pharmaceutical_compliance": "error_logged_for_audit",
-            "regulatory_impact": "assessed" if exc.status_code >= 400 else "none"
-        }
+            "regulatory_impact": "assessed" if exc.status_code >= 400 else "none",
+        },
     )
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions."""
-    logger.error(f"Unexpected error in {request.url}: {type(exc).__name__}: {exc}", exc_info=True)
+    logger.error(
+        f"Unexpected error in {request.url}: {type(exc).__name__}: {exc}", exc_info=True
+    )
     return JSONResponse(
         status_code=500,
         content={
@@ -147,8 +146,8 @@ async def general_exception_handler(request: Request, exc: Exception):
             "message": "An unexpected error occurred. This incident has been logged for investigation.",
             "request_id": request.headers.get("x-request-id"),
             "pharmaceutical_compliance": "critical_error_logged",
-            "regulatory_impact": "under_investigation"
-        }
+            "regulatory_impact": "under_investigation",
+        },
     )
 
 
@@ -165,8 +164,8 @@ async def health_check():
             "database": "connected",
             "ollama": "available",
             "pdf_generation": "ready",
-            "audit_logging": "active"
-        }
+            "audit_logging": "active",
+        },
     }
 
 
@@ -181,15 +180,19 @@ async def detailed_health_check():
             "fda_21_cfr_part_11": "compliant",
             "gmp_guidelines": "followed",
             "data_integrity": "maintained",
-            "audit_trail": "complete"
+            "audit_trail": "complete",
         },
         "system_info": {
-            "database_url": settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "configured",
+            "database_url": (
+                settings.DATABASE_URL.split("@")[-1]
+                if "@" in settings.DATABASE_URL
+                else "configured"
+            ),
             "ollama_host": settings.OLLAMA_HOST,
             "model": settings.OLLAMA_MODEL,
             "cors_origins": len(settings.BACKEND_CORS_ORIGINS),
             "upload_dir": settings.UPLOAD_DIR,
-            "pdf_output_dir": settings.PDF_OUTPUT_DIR
+            "pdf_output_dir": settings.PDF_OUTPUT_DIR,
         },
         "features": {
             "ai_generation": True,
@@ -199,17 +202,25 @@ async def detailed_health_check():
             "regulatory_validation": True,
             "template_management": True,
             "batch_processing": True,
-            "websocket_notifications": True
-        }
+            "websocket_notifications": True,
+        },
     }
 
 
 # Include routers
-app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Authentication"])
+app.include_router(
+    auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Authentication"]
+)
 app.include_router(sop.router, prefix=f"{settings.API_V1_STR}/sops", tags=["SOPs"])
-app.include_router(template.router, prefix=f"{settings.API_V1_STR}/templates", tags=["Templates"])
-app.include_router(audit.router, prefix=f"{settings.API_V1_STR}/audit", tags=["Audit & Compliance"])
-app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["Administration"])
+app.include_router(
+    template.router, prefix=f"{settings.API_V1_STR}/templates", tags=["Templates"]
+)
+app.include_router(
+    audit.router, prefix=f"{settings.API_V1_STR}/audit", tags=["Audit & Compliance"]
+)
+app.include_router(
+    admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["Administration"]
+)
 app.include_router(demo.router, prefix=f"{settings.API_V1_STR}/demo", tags=["Demo"])
 
 
@@ -227,11 +238,11 @@ async def root():
             "fda_compliance": "21 CFR Part 11 ready",
             "gmp_guidelines": "WHO/ICH compliant",
             "data_integrity": "ALCOA+ principles",
-            "audit_trail": "Complete electronic records"
+            "audit_trail": "Complete electronic records",
         },
         "features": [
             "AI-powered SOP generation with Ollama integration",
-            "Multi-step pharmaceutical SOP creation wizard", 
+            "Multi-step pharmaceutical SOP creation wizard",
             "Real-time job status monitoring with WebSockets",
             "Professional PDF generation with regulatory formatting",
             "Comprehensive audit trails for compliance",
@@ -239,8 +250,8 @@ async def root():
             "FDA dataset integration for terminology validation",
             "Google Colab training pipeline for model fine-tuning",
             "Role-based access control for pharmaceutical workflows",
-            "Regulatory compliance validation and reporting"
-        ]
+            "Regulatory compliance validation and reporting",
+        ],
     }
 
 
@@ -251,5 +262,5 @@ if __name__ == "__main__":
         port=9000,
         reload=True,
         log_level=settings.LOG_LEVEL.lower(),
-        access_log=True
+        access_log=True,
     )

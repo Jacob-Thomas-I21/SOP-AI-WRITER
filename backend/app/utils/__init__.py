@@ -6,7 +6,7 @@ from .logging import setup_logging
 
 __all__ = [
     "PharmaceuticalPromptBuilder",
-    "PharmaceuticalValidator", 
+    "PharmaceuticalValidator",
     "RegulatoryChecker",
-    "setup_logging"
+    "setup_logging",
 ]

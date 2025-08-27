@@ -5,16 +5,16 @@ from datetime import timedelta
 
 router = APIRouter()
 
+
 @router.post("/demo-auth")
 async def get_demo_auth_token():
     """Get demo authentication token for showcase purposes."""
-    
+
     # Create a demo token for showcase
     access_token = create_access_token(
-        subject="demo_user",
-        expires_delta=timedelta(hours=24)
+        subject="demo_user", expires_delta=timedelta(hours=24)
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -22,10 +22,11 @@ async def get_demo_auth_token():
         "user": {
             "username": "demo_user",
             "role": "supervisor",
-            "department": "production"
+            "department": "production",
         },
-        "message": "Demo authentication token generated for showcase"
+        "message": "Demo authentication token generated for showcase",
     }
+
 
 @router.get("/demo-status")
 async def demo_status():
@@ -38,6 +39,6 @@ async def demo_status():
             "AI-Powered Content Generation",
             "Pharmaceutical Compliance Validation",
             "PDF Export Functionality",
-            "Audit Trail Logging"
-        ]
+            "Audit Trail Logging",
+        ],
     }

@@ -47,9 +47,13 @@ class SOPBase(SQLModel):
     title: str = Field(index=True, min_length=5, max_length=200)
     description: str = Field(min_length=10, max_length=2000)
     template_type: Optional[str] = Field(default=None, max_length=100)
-    department: PharmaceuticalDepartment = Field(default=PharmaceuticalDepartment.PRODUCTION)
+    department: PharmaceuticalDepartment = Field(
+        default=PharmaceuticalDepartment.PRODUCTION
+    )
     priority: SOPPriority = Field(default=SOPPriority.MEDIUM)
-    regulatory_framework: List[RegulatoryFramework] = Field(default_factory=list, sa_column=Column(JSON))
+    regulatory_framework: List[RegulatoryFramework] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
     guideline_refs: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     validation_errors: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     regulatory_version: str = Field(default="1.0", max_length=20)
@@ -57,7 +61,7 @@ class SOPBase(SQLModel):
 
 class SOP(SOPBase, table=True):
     __tablename__ = "sops"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     job_id: str = Field(unique=True, index=True, max_length=36)
     status: SOPStatus = Field(default=SOPStatus.PENDING, index=True)
@@ -65,26 +69,38 @@ class SOP(SOPBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: Optional[datetime] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
-    
+
     # SOP Content
     sop_content: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     pdf_path: Optional[str] = Field(default=None, max_length=500)
-    
+
     # Pharmaceutical-specific fields
-    batch_record_template: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    cleaning_validation_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    equipment_list: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON))
-    chemical_inventory: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
-    
+    batch_record_template: Optional[Dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    cleaning_validation_data: Optional[Dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    equipment_list: Optional[List[str]] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
+    chemical_inventory: Optional[List[Dict[str, Any]]] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
+
     # Compliance tracking
     fda_compliance_score: Optional[float] = Field(default=None, ge=0.0, le=100.0)
-    gmp_compliance_indicators: Optional[Dict[str, bool]] = Field(default=None, sa_column=Column(JSON))
-    review_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list, sa_column=Column(JSON))
-    
+    gmp_compliance_indicators: Optional[Dict[str, bool]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    review_history: Optional[List[Dict[str, Any]]] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
+
     # Error tracking
     error_message: Optional[str] = Field(default=None, max_length=1000)
     retry_count: int = Field(default=0)
-    
+
     # Model performance tracking
     ai_model_used: Optional[str] = Field(default=None, max_length=100)
     generation_time_seconds: Optional[float] = Field(default=None)
@@ -93,6 +109,7 @@ class SOP(SOPBase, table=True):
 
 class SOPCreate(SOPBase):
     """Create SOP request model."""
+
     job_id: str
     created_by: str
     template_content: Optional[str] = None
@@ -101,6 +118,7 @@ class SOPCreate(SOPBase):
 
 class SOPUpdate(SQLModel):
     """Update SOP model."""
+
     title: Optional[str] = Field(default=None, min_length=5, max_length=200)
     description: Optional[str] = Field(default=None, min_length=10, max_length=2000)
     status: Optional[SOPStatus] = None
@@ -114,6 +132,7 @@ class SOPUpdate(SQLModel):
 
 class SOPResponse(SOPBase):
     """SOP response model."""
+
     id: int
     job_id: str
     status: SOPStatus
@@ -133,6 +152,7 @@ class SOPResponse(SOPBase):
 
 class SOPSearchFilters(BaseModel):
     """Search and filter model for SOPs."""
+
     title: Optional[str] = None
     status: Optional[List[SOPStatus]] = None
     department: Optional[List[PharmaceuticalDepartment]] = None
@@ -142,18 +162,22 @@ class SOPSearchFilters(BaseModel):
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
     min_compliance_score: Optional[float] = Field(default=None, ge=0.0, le=100.0)
-    
+
     # Pagination
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
-    
+
     # Sorting
-    sort_by: Optional[str] = Field(default="created_at", regex=r"^(created_at|updated_at|title|status|priority|fda_compliance_score)$")
+    sort_by: Optional[str] = Field(
+        default="created_at",
+        regex=r"^(created_at|updated_at|title|status|priority|fda_compliance_score)$",
+    )
     sort_order: Optional[str] = Field(default="desc", regex=r"^(asc|desc)$")
 
 
 class SOPValidationResult(BaseModel):
     """SOP validation result model."""
+
     is_valid: bool
     compliance_score: float = Field(ge=0.0, le=100.0)
     validation_errors: List[str] = Field(default_factory=list)
@@ -165,6 +189,7 @@ class SOPValidationResult(BaseModel):
 
 class PharmaceuticalTerminology(BaseModel):
     """Pharmaceutical terminology validation."""
+
     term: str
     definition: str
     regulatory_source: str
