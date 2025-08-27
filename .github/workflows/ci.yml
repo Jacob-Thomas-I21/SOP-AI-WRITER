@@ -225,28 +225,52 @@ jobs:
 
     - name: Check for sensitive data
       run: |
-        # Check for hardcoded API keys, passwords, tokens (exclude variable names and comments)
+        # Check for hardcoded sensitive data (very specific patterns)
+        echo "🔍 Scanning for hardcoded sensitive data..."
+
+        # Only look for actual hardcoded values, not variable declarations or type hints
         sensitive_patterns=(
-          "password.*=.*['\"][^'\"]*['\"]"
-          "token.*=.*['\"][^'\"]*['\"]"
-          "secret.*=.*['\"][^'\"]*['\"]"
-          "key.*=.*['\"][^'\"]*['\"]"
-          "api_key.*=.*['\"][^'\"]*['\"]"
-          "[^a-zA-Z_]password[^a-zA-Z_].*=.*['\"][^'\"]*['\"]"
-          "[^a-zA-Z_]token[^a-zA-Z_].*=.*['\"][^'\"]*['\"]"
-          "[^a-zA-Z_]secret[^a-zA-Z_].*=.*['\"][^'\"]*['\"]"
+          # Passwords: variable_name = "actual_password_value"
+          "[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*=[[:space:]]*['\"][^'\"]{8,}['\"]"
+          # API Keys: api_key = "sk-1234567890abcdef"
+          "api_key[[:space:]]*=[[:space:]]*['\"][a-zA-Z0-9_-]{20,}['\"]"
+          # Tokens: token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+          "token[[:space:]]*=[[:space:]]*['\"][a-zA-Z0-9_.-]{50,}['\"]"
+          # Secrets: secret = "actual_secret_value"
+          "secret[[:space:]]*=[[:space:]]*['\"][^'\"]{10,}['\"]"
+          # Private keys: private_key = "-----BEGIN PRIVATE KEY-----"
+          "private_key[[:space:]]*=[[:space:]]*['\"]-{5}[^'\"]*-{5}['\"]"
         )
 
         found_sensitive=false
+
+        # Check each pattern
         for pattern in "${sensitive_patterns[@]}"; do
-          if grep -r -E "$pattern" --include="*.py" --include="*.ts" --include="*.js" --include="*.json" --include="*.env*" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__ 2>/dev/null; then
-            echo "⚠️  Potential hardcoded sensitive data found matching pattern: $pattern"
+          # Use more specific grep to avoid false positives
+          matches=$(grep -r -E "$pattern" --include="*.py" --include="*.ts" --include="*.js" --include="*.json" --include="*.env*" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__ 2>/dev/null | grep -v "example" | grep -v "template" | grep -v "test" | grep -v "mock" | grep -v "fake" | grep -v "sample" | head -5)
+
+          if [ ! -z "$matches" ]; then
+            echo "⚠️  Potential hardcoded sensitive data found:"
+            echo "$matches"
+            echo ""
             found_sensitive=true
           fi
         done
 
+        # Also check for suspicious environment variable patterns
+        env_pattern="[A-Z_][A-Z0-9_]*[[:space:]]*=[[:space:]]*['\"][^'\"]{15,}['\"]"
+        env_matches=$(grep -r -E "$env_pattern" --include="*.env*" --include="*.sh" --include="*.py" . --exclude-dir=.git --exclude-dir=node_modules 2>/dev/null | head -3)
+
+        if [ ! -z "$env_matches" ]; then
+          echo "⚠️  Potential hardcoded environment variables:"
+          echo "$env_matches"
+          echo ""
+          found_sensitive=true
+        fi
+
         if [ "$found_sensitive" = true ]; then
           echo "❌ Sensitive data check failed - review findings above"
+          echo "💡 Tip: Move sensitive values to environment variables or .env files"
           exit 1
         else
           echo "✅ No hardcoded sensitive data found"

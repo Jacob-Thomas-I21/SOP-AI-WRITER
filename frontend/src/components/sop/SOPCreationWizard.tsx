@@ -43,7 +43,7 @@ const SOPCreationWizard: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedSOP, setGeneratedSOP] = useState<any>(null);
-  const [isAuthInitialized, setIsAuthInitialized] = useState(false);
+  // Removed unused isAuthInitialized state
   
   const [wizardData, setWizardData] = useState<SOPCreationData>({
     title: '',
@@ -136,7 +136,6 @@ const SOPCreationWizard: React.FC = () => {
   useEffect(() => {
     const initializeDemo = async () => {
       const initialized = await apiService.initializeDemo();
-      setIsAuthInitialized(initialized);
       if (!initialized) {
         console.warn('Demo authentication not initialized - some features may not work');
       }

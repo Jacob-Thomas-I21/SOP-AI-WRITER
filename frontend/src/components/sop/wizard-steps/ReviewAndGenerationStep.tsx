@@ -41,7 +41,7 @@ const ReviewAndGenerationStep: React.FC<ReviewAndGenerationStepProps> = ({
     warnings: number;
     checks: Array<{
       name: string;
-      status: 'pass' | 'fail' | 'warning';
+      status: "warning" | "pass" | "fail";
       message: string;
     }>;
   }>({
@@ -53,11 +53,15 @@ const ReviewAndGenerationStep: React.FC<ReviewAndGenerationStepProps> = ({
 
   // Perform validation checks
   React.useEffect(() => {
-    const checks = [
+    const checks: Array<{
+      name: string;
+      status: "warning" | "pass" | "fail";
+      message: string;
+    }> = [
       {
         name: 'Basic Information',
         status: data.title && data.description && data.department && data.priority ? 'pass' : 'fail',
-        message: data.title && data.description && data.department && data.priority 
+        message: data.title && data.description && data.department && data.priority
           ? 'All required basic information provided'
           : 'Missing required basic information fields'
       },
@@ -142,11 +146,15 @@ const ReviewAndGenerationStep: React.FC<ReviewAndGenerationStepProps> = ({
   };
 
   const getFrameworkLabel = (framework: RegulatoryFramework) => {
-    const labels = {
+    const labels: Record<RegulatoryFramework, string> = {
       [RegulatoryFramework.FDA_21_CFR_211]: 'FDA 21 CFR Part 211',
       [RegulatoryFramework.ICH_Q7]: 'ICH Q7',
+      [RegulatoryFramework.ICH_Q10]: 'ICH Q10',
       [RegulatoryFramework.WHO_GMP]: 'WHO GMP',
-      [RegulatoryFramework.EMA_GMP]: 'EMA GMP'
+      [RegulatoryFramework.EMA_GMP]: 'EMA GMP',
+      [RegulatoryFramework.ISO_9001]: 'ISO 9001',
+      [RegulatoryFramework.ISO_14001]: 'ISO 14001',
+      [RegulatoryFramework.ISO_13485]: 'ISO 13485'
     };
     return labels[framework] || framework;
   };
@@ -240,8 +248,8 @@ const ReviewAndGenerationStep: React.FC<ReviewAndGenerationStepProps> = ({
             <div>
               <h4 className="text-sm font-medium text-gray-700">Regulatory Frameworks</h4>
               <div className="mt-1 space-y-1">
-                {data.frameworks?.map((framework, index) => (
-                  <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2">
+                {data.frameworks?.map((framework) => (
+                  <span key={framework} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2">
                     {getFrameworkLabel(framework)}
                   </span>
                 ))}

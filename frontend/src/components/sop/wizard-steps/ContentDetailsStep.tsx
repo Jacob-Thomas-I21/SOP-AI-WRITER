@@ -39,7 +39,8 @@ const ContentDetailsStep: React.FC<ContentDetailsStepProps> = ({
       equipmentRequired: data.equipmentRequired || [],
       materialsRequired: data.materialsRequired || [],
       qualityCheckpoints: data.qualityCheckpoints || [],
-      ...data
+      estimatedDuration: data.estimatedDuration || '',
+      safetyConsiderations: data.safetyConsiderations || ''
     }
   });
 
