@@ -28,10 +28,16 @@ pytestmark = pytest.mark.filterwarnings(
 # Create test client with mocked authentication
 def create_test_client():
     """Create test client with mocked authentication."""
-    with patch('app.core.security.get_current_user') as mock_get_user:
-        mock_get_user.return_value = "test-user"
-        client = TestClient(app)
-        return client
+    from app.main import app
+    from fastapi.testclient import TestClient
+
+    # Override dependencies for testing - this is the proper way
+    app.dependency_overrides = {
+        'app.core.security.get_current_user': lambda: "test-user",
+        'app.core.security.require_role': lambda role=None: lambda: "test-user"
+    }
+
+    return TestClient(app)
 
 client = create_test_client()
 
@@ -70,61 +76,104 @@ def sample_sop_data():
         # Standard Operating Procedure: Equipment Cleaning Validation
 
         ## 1. Purpose
-        This SOP establishes procedures for validating cleaning processes for pharmaceutical manufacturing equipment to ensure removal of product residues, cleaning agents, and microorganisms in accordance with current Good Manufacturing Practice (cGMP) requirements.
+        This SOP establishes procedures for validating cleaning processes for pharmaceutical manufacturing equipment to ensure removal of product residues, cleaning agents, and microorganisms in accordance with current Good Manufacturing Practice (cGMP) requirements per FDA 21 CFR Part 211 and ICH Q7 guidelines.
 
         ## 2. Scope
-        This procedure applies to all production equipment used in the manufacture of drug products, including but not limited to tablet presses, capsule fillers, granulators, and mixing equipment.
+        This procedure applies to all production equipment used in the manufacture of drug products, including but not limited to tablet presses, capsule fillers, granulators, mixing equipment, and associated utilities. This includes equipment used for both active pharmaceutical ingredients (APIs) and finished dosage forms.
 
         ## 3. Responsibilities
-        - **Quality Assurance Manager**: Approves validation protocols and final reports
-        - **Validation Specialist**: Executes validation studies and prepares documentation
-        - **Production Operators**: Perform cleaning procedures according to validated methods
-        - **Quality Control Analysts**: Conduct analytical testing for cleaning validation samples
+        - **Quality Assurance Manager**: Approves validation protocols and final reports, ensures compliance with regulatory requirements
+        - **Validation Specialist**: Executes validation studies, prepares documentation, and coordinates with cross-functional teams
+        - **Production Operators**: Perform cleaning procedures according to validated methods, document activities
+        - **Quality Control Analysts**: Conduct analytical testing for cleaning validation samples, review test results
+        - **Engineering/Maintenance**: Provide technical support for equipment modifications and maintenance activities
 
-        ## 4. Materials and Equipment
-        - Cleaning agents (detergents, solvents) validated for use
-        - Sampling materials (swabs, rinse water containers)
-        - Analytical equipment (HPLC, TOC analyzer, pH meter)
-        - Personal protective equipment (PPE) as required
+        ## 4. Personnel Qualifications
+        All personnel involved in cleaning validation activities must be trained and qualified according to established procedures. Training records must be maintained and periodically reviewed. Personnel must demonstrate competency in equipment operation, cleaning procedures, and documentation practices.
 
-        ## 5. Procedure
+        ## 5. Materials and Equipment
+        - Cleaning agents (detergents, solvents) validated for use and stored according to manufacturer recommendations
+        - Sampling materials (swabs, rinse water containers, filters) qualified for use in analytical testing
+        - Analytical equipment (HPLC, TOC analyzer, pH meter, conductivity meter) calibrated and qualified
+        - Personal protective equipment (PPE) including gloves, safety glasses, and protective clothing
+        - Cleaning tools and accessories validated for use with specific equipment
 
-        ### 5.1 Pre-Cleaning Activities
-        1. Verify equipment is shut down and de-energized
-        2. Remove gross residues and debris
-        3. Inspect equipment for damage or wear
-        4. Document pre-cleaning condition
+        ## 6. Procedure
 
-        ### 5.2 Cleaning Process Execution
-        1. Prepare cleaning solutions according to validated concentrations
-        2. Apply cleaning agents using validated methods (spray, soak, manual)
-        3. Maintain contact time as specified in validation protocol
-        4. Rinse equipment with purified water
-        5. Dry equipment using validated methods
+        ### 6.1 Pre-Cleaning Activities
+        1. Verify equipment is shut down and de-energized according to lockout/tagout procedures
+        2. Remove gross residues and debris using approved methods
+        3. Inspect equipment for damage or wear that may affect cleaning efficacy
+        4. Document pre-cleaning condition and any observations
+        5. Ensure all utilities (water, compressed air) are available and qualified
 
-        ### 5.3 Post-Cleaning Activities
-        1. Visually inspect equipment for cleanliness
-        2. Collect samples for analytical testing
-        3. Document cleaning completion
-        4. Release equipment for production use
+        ### 6.2 Cleaning Process Execution
+        1. Prepare cleaning solutions according to validated concentrations and volumes
+        2. Apply cleaning agents using validated methods (spray, soak, manual, automated)
+        3. Maintain contact time as specified in validation protocol (typically 15-30 minutes)
+        4. Agitate or circulate cleaning solutions as required for effective cleaning
+        5. Rinse equipment with purified water meeting USP specifications
+        6. Dry equipment using validated methods (air drying, vacuum drying, or other approved methods)
 
-        ## 6. Acceptance Criteria
-        - Visual inspection: No visible residues
-        - Chemical residue limits: Below validated acceptance criteria
-        - Microbial limits: Below alert/action levels
-        - pH of final rinse: Within validated range
+        ### 6.3 Post-Cleaning Activities
+        1. Visually inspect equipment for cleanliness using approved lighting and magnification
+        2. Collect samples for analytical testing according to validated sampling plan
+        3. Document cleaning completion with date, time, and operator identification
+        4. Release equipment for production use only after satisfactory results
+        5. Handle and dispose of cleaning waste according to environmental regulations
 
-        ## 7. Documentation
-        All cleaning activities must be documented in batch production records and cleaning logs. Deviations from validated procedures must be documented and investigated.
+        ## 7. Quality Control
+        Quality control activities include:
+        - Analytical testing of cleaning validation samples
+        - Review and approval of cleaning validation results
+        - Investigation of any deviations from acceptance criteria
+        - Periodic reassessment of cleaning validation status
+        - Trending of cleaning validation data for continuous improvement
 
-        ## 8. References
-        - FDA 21 CFR 211.67 Equipment Cleaning and Maintenance
+        ## 8. Acceptance Criteria
+        - **Visual Inspection**: No visible residues, stains, or foreign materials
+        - **Chemical Residue Limits**: Below validated acceptance criteria (typically <1 ppm for APIs, <10 ppm for cleaning agents)
+        - **Microbial Limits**: Below alert/action levels (<10 CFU/swab for surfaces, <1 CFU/mL for rinse water)
+        - **pH of Final Rinse**: Within validated range (typically 5.0-7.0 for purified water)
+        - **Conductivity**: Within validated range for purified water rinses
+        - **TOC (Total Organic Carbon)**: Below validated limits (<500 ppb for final rinse)
+
+        ## 9. Documentation
+        All cleaning activities must be documented in batch production records and cleaning logs. Documentation includes:
+        - Equipment identification and cleaning date/time
+        - Cleaning procedure used and cleaning agents employed
+        - Operator identification and training status
+        - Results of visual inspections and analytical testing
+        - Deviations from validated procedures with investigation and corrective actions
+        - Equipment release authorization
+
+        ## 10. Change Control
+        Any changes to equipment, cleaning procedures, or cleaning agents must be evaluated through the change control system. Changes may require revalidation of cleaning processes to ensure continued efficacy.
+
+        ## 11. Deviation Management
+        Deviations from validated cleaning procedures or acceptance criteria must be documented, investigated, and resolved according to established deviation management procedures. Root cause analysis must be performed and corrective/preventive actions implemented.
+
+        ## 12. Training
+        All personnel involved in cleaning validation must receive initial and periodic refresher training. Training must include:
+        - Equipment-specific cleaning procedures
+        - Safety precautions and PPE usage
+        - Documentation requirements
+        - Deviation reporting procedures
+
+        ## 13. References
+        - FDA 21 CFR Part 211 - Current Good Manufacturing Practice for Finished Pharmaceuticals
+        - FDA 21 CFR Part 211.67 - Equipment Cleaning and Maintenance
         - ICH Q7 Good Manufacturing Practice Guide for Active Pharmaceutical Ingredients
+        - ICH Q9 Quality Risk Management
         - EU GMP Annex 15 Qualification and Validation
         - WHO Technical Report Series 937, 2006 (Annex 3)
+        - USP <1058> Analytical Instrument Qualification
+        - USP <1225> Validation of Compendial Procedures
 
-        ## 9. Revision History
-        Version 1.0 - Initial release
+        ## 14. Revision History
+        Version 1.0 - Initial release (January 2024)
+        Version 1.1 - Updated acceptance criteria based on regulatory feedback (March 2024)
+        Version 1.2 - Added change control and deviation management sections (June 2024)
         """
     }
 
@@ -372,8 +421,8 @@ class TestSystemHealthAndMonitoring:
         assert health_response.status_code == 200
         health_data = health_response.json()
         assert health_data["status"] == "healthy"
-        assert "pharmaceutical_compliance" in health_data
-        assert health_data["pharmaceutical_compliance"] == "operational"
+        assert "pharmaceutical_compliance" in health_data["components"]
+        assert health_data["components"]["pharmaceutical_compliance"]["fda_21_cfr_part_11"] == "compliant"
 
         # Detailed health check
         detailed_response = client.get("/health/detailed")
@@ -421,7 +470,7 @@ class TestSystemHealthAndMonitoring:
         assert "ollama_ai" in components
         assert "pdf_generation" in components
         assert "validation_service" in components
-        assert "pharmaceutical_compliance" in health_data
+        assert "pharmaceutical_compliance" in components
 
         # Verify the mocked services were called
         mock_ollama_health.assert_called_once()

@@ -259,7 +259,7 @@ const ReviewAndGenerationStep: React.FC<ReviewAndGenerationStepProps> = ({
             <div>
               <h4 className="text-sm font-medium text-gray-700">Sections ({data.sections?.length || 0})</h4>
               <div className="mt-1 text-sm text-gray-600">
-                {data.sections?.map((section, index) => section.title).join(', ') || 'None defined'}
+                {data.sections?.map((section) => section.title).join(', ') || 'None defined'}
               </div>
             </div>
             

@@ -42,8 +42,7 @@ const SOPCreationWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [generatedSOP, setGeneratedSOP] = useState<any>(null); // Used in handleGenerate
-  // Removed unused isAuthInitialized state
+  // Removed unused isAuthInitialized and generatedSOP states
   
   const [wizardData, setWizardData] = useState<SOPCreationData>({
     title: '',
@@ -190,9 +189,8 @@ const SOPCreationWizard: React.FC = () => {
 
       // Use API service
       const result = await apiService.createSOP(requestData);
-      
+
       clearInterval(progressInterval);
-      setGeneratedSOP(result);
       setGenerationProgress(100);
       
       // Show success for a moment, then redirect or show download options
