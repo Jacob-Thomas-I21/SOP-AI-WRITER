@@ -49,31 +49,31 @@ const ContentDetailsStep: React.FC<ContentDetailsStepProps> = ({
     name: 'sections'
   });
 
-  const { fields: equipmentFields, append: appendEquipment, remove: removeEquipment } = useFieldArray({
-    control,
-    name: 'equipmentRequired'
-  });
-
-  const { fields: materialFields, append: appendMaterial, remove: removeMaterial } = useFieldArray({
-    control,
-    name: 'materialsRequired'
-  });
-
-  const { fields: checkpointFields, append: appendCheckpoint, remove: removeCheckpoint } = useFieldArray({
-    control,
-    name: 'qualityCheckpoints'
-  });
+  // For string arrays, we'll manage them manually since useFieldArray has type inference issues
+  const [equipmentItems, setEquipmentItems] = React.useState<string[]>(data.equipmentRequired || []);
+  const [materialItems, setMaterialItems] = React.useState<string[]>(data.materialsRequired || []);
+  const [checkpointItems, setCheckpointItems] = React.useState<string[]>(data.qualityCheckpoints || []);
 
   // Watch for changes and update parent
   React.useEffect(() => {
     const subscription = watch((value) => {
-      onUpdate(value as Partial<ContentDetailsFormData>);
+      onUpdate({
+        ...value,
+        equipmentRequired: equipmentItems,
+        materialsRequired: materialItems,
+        qualityCheckpoints: checkpointItems
+      } as Partial<ContentDetailsFormData>);
     });
     return () => subscription.unsubscribe();
-  }, [watch, onUpdate]);
+  }, [watch, onUpdate, equipmentItems, materialItems, checkpointItems]);
 
   const onSubmit = (formData: ContentDetailsFormData) => {
-    onUpdate(formData);
+    onUpdate({
+      ...formData,
+      equipmentRequired: equipmentItems,
+      materialsRequired: materialItems,
+      qualityCheckpoints: checkpointItems
+    });
     onNext();
   };
 
@@ -86,15 +86,27 @@ const ContentDetailsStep: React.FC<ContentDetailsStepProps> = ({
   };
 
   const addEquipment = () => {
-    appendEquipment('');
+    setEquipmentItems([...equipmentItems, '']);
+  };
+
+  const removeEquipmentItem = (index: number) => {
+    setEquipmentItems(equipmentItems.filter((_, i) => i !== index));
   };
 
   const addMaterial = () => {
-    appendMaterial('');
+    setMaterialItems([...materialItems, '']);
+  };
+
+  const removeMaterialItem = (index: number) => {
+    setMaterialItems(materialItems.filter((_, i) => i !== index));
   };
 
   const addCheckpoint = () => {
-    appendCheckpoint('');
+    setCheckpointItems([...checkpointItems, '']);
+  };
+
+  const removeCheckpointItem = (index: number) => {
+    setCheckpointItems(checkpointItems.filter((_, i) => i !== index));
   };
 
   const standardSectionTemplates = [
@@ -226,19 +238,22 @@ const ContentDetailsStep: React.FC<ContentDetailsStepProps> = ({
           </div>
 
           <div className="space-y-2">
-            {equipmentFields.map((field, index) => (
-              <div key={field.id} className="flex items-center space-x-2">
+            {equipmentItems.map((item, index) => (
+              <div key={index} className="flex items-center space-x-2">
                 <input
                   type="text"
-                  {...register(`equipmentRequired.${index}`, {
-                    required: 'Equipment name is required'
-                  })}
+                  value={item}
+                  onChange={(e) => {
+                    const newItems = [...equipmentItems];
+                    newItems[index] = e.target.value;
+                    setEquipmentItems(newItems);
+                  }}
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., Balance (±0.1mg), pH Meter, Autoclave"
                 />
                 <button
                   type="button"
-                  onClick={() => removeEquipment(index)}
+                  onClick={() => removeEquipmentItem(index)}
                   className="text-red-400 hover:text-red-600"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -265,19 +280,22 @@ const ContentDetailsStep: React.FC<ContentDetailsStepProps> = ({
           </div>
 
           <div className="space-y-2">
-            {materialFields.map((field, index) => (
-              <div key={field.id} className="flex items-center space-x-2">
+            {materialItems.map((item, index) => (
+              <div key={index} className="flex items-center space-x-2">
                 <input
                   type="text"
-                  {...register(`materialsRequired.${index}`, {
-                    required: 'Material name is required'
-                  })}
+                  value={item}
+                  onChange={(e) => {
+                    const newItems = [...materialItems];
+                    newItems[index] = e.target.value;
+                    setMaterialItems(newItems);
+                  }}
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., Cleaning solutions, Reagents, Personal protective equipment"
                 />
                 <button
                   type="button"
-                  onClick={() => removeMaterial(index)}
+                  onClick={() => removeMaterialItem(index)}
                   className="text-red-400 hover:text-red-600"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -348,19 +366,22 @@ const ContentDetailsStep: React.FC<ContentDetailsStepProps> = ({
           </div>
 
           <div className="space-y-2">
-            {checkpointFields.map((field, index) => (
-              <div key={field.id} className="flex items-center space-x-2">
+            {checkpointItems.map((item, index) => (
+              <div key={index} className="flex items-center space-x-2">
                 <input
                   type="text"
-                  {...register(`qualityCheckpoints.${index}`, {
-                    required: 'Quality checkpoint is required'
-                  })}
+                  value={item}
+                  onChange={(e) => {
+                    const newItems = [...checkpointItems];
+                    newItems[index] = e.target.value;
+                    setCheckpointItems(newItems);
+                  }}
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., Temperature verification, pH measurement, Visual inspection"
                 />
                 <button
                   type="button"
-                  onClick={() => removeCheckpoint(index)}
+                  onClick={() => removeCheckpointItem(index)}
                   className="text-red-400 hover:text-red-600"
                 >
                   <TrashIcon className="h-4 w-4" />

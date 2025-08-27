@@ -42,7 +42,7 @@ const SOPCreationWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [generatedSOP, setGeneratedSOP] = useState<any>(null);
+  const [generatedSOP, setGeneratedSOP] = useState<any>(null); // Used in handleGenerate
   // Removed unused isAuthInitialized state
   
   const [wizardData, setWizardData] = useState<SOPCreationData>({

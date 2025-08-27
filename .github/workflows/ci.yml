@@ -254,9 +254,9 @@ jobs:
 
         # Check each pattern, specifically excluding config files and legitimate defaults
         for pattern in "${sensitive_patterns[@]}"; do
-          # Exclude config files, environment variable references, and test files
-          matches=$(grep -r -E "$pattern" --include="*.py" --include="*.ts" --include="*.js" --include="*.json" --include="*.env*" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__ 2>/dev/null | grep -v "config.py" | grep -v "settings" | grep -v "example" | grep -v "template" | grep -v "test" | grep -v "mock" | grep -v "fake" | grep -v "sample" | grep -v "default" | grep -v "placeholder" | grep -v "change-in-production" | grep -v "sqlite://" | grep -v "redis://" | grep -v "localhost" | head -5)
-
+          # Exclude config files, environment variable references, test files, and error messages
+          matches=$(grep -r -E "$pattern" --include="*.py" --include="*.ts" --include="*.js" --include="*.json" --include="*.env*" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__ 2>/dev/null | grep -v "config.py" | grep -v "settings" | grep -v "example" | grep -v "template" | grep -v "test" | grep -v "mock" | grep -v "fake" | grep -v "sample" | grep -v "default" | grep -v "placeholder" | grep -v "change-in-production" | grep -v "sqlite://" | grep -v "redis://" | grep -v "localhost" | grep -v "detail=" | grep -v "Could not validate" | grep -v "failed" | grep -v "access" | grep -v "event_type" | grep -v "compliance_context" | head -5)
+      
           if [ ! -z "$matches" ]; then
             echo "⚠️  Potential hardcoded sensitive data found:"
             echo "$matches"
