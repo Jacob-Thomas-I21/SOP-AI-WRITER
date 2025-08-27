@@ -1,0 +1,37 @@
+{
+  "audit-ci-version": "6.6.1",
+  "output-format": "text",
+  "allowlist": [
+    "GHSA-776f-qx25-q3cc",
+    "GHSA-8hc4-vh64-cxmj",
+    "GHSA-c2qf-rxjj-qqgw"
+  ],
+  "path-allowlist": [
+    "/build/**",
+    "/docs/**",
+    "/test/**",
+    "/tests/**",
+    "/spec/**",
+    "/example/**",
+    "/examples/**",
+    "/sample/**",
+    "/samples/**",
+    "/demo/**",
+    "/demos/**"
+  ],
+  "retry": {
+    "count": 3,
+    "delay": 1000
+  },
+  "report": {
+    "path": "./audit-results.json",
+    "type": "json"
+  },
+  "levels": {
+    "low": true,
+    "moderate": true,
+    "high": true,
+    "critical": true
+  },
+  "ignore-dev-dependencies": false
+}

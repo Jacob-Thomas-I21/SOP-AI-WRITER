@@ -1,0 +1,216 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scans weekly
+    - cron: '0 2 * * 1'
+
+jobs:
+  # SAST (Static Application Security Testing)
+  sast:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python,javascript,typescript
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v2
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+  # Dependency Vulnerability Scanning
+  dependency-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Scan Python dependencies
+      run: |
+        cd backend
+        pip install safety
+        safety check --file requirements.txt --output json --save-json safety-report.json || true
+
+    - name: Upload Safety report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: safety-report
+        path: backend/safety-report.json
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Scan Node.js dependencies
+      run: |
+        cd frontend
+        npm install
+        npm audit --audit-level=moderate --json > npm-audit-report.json || true
+
+    - name: Upload NPM audit report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: npm-audit-report
+        path: frontend/npm-audit-report.json
+
+  # Container Security Scanning
+  container-security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build backend image
+      run: |
+        docker build -f local-deployment/docker/Dockerfile.backend -t sop-backend:test ./backend
+
+    - name: Scan backend container
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'image'
+        scan-ref: 'sop-backend:test'
+        format: 'sarif'
+        output: 'backend-trivy-results.sarif'
+
+    - name: Upload backend scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'backend-trivy-results.sarif'
+
+  # Secrets Detection
+  secrets-detection:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run TruffleHog OSS
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # License Compliance
+  license-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check licenses
+      run: |
+        # Check Python packages
+        cd backend
+        pip install pip-licenses
+        pip-licenses --format=json > python-licenses.json || true
+
+        # Check Node.js packages
+        cd ../frontend
+        npm install
+        npx license-checker --json > node-licenses.json || true
+
+    - name: Upload license reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: license-reports
+        path: |
+          backend/python-licenses.json
+          frontend/node-licenses.json
+
+  # Security Configuration Check
+  security-config:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check security configurations
+      run: |
+        echo "🔍 Checking security configurations..."
+
+        # Check if .gitignore contains sensitive files
+        if grep -q "password\|token\|secret\|key" .gitignore; then
+          echo "✅ .gitignore properly configured for sensitive files"
+        else
+          echo "⚠️  .gitignore may not be configured for sensitive files"
+        fi
+
+        # Check for hardcoded secrets in code
+        if grep -r "password.*=.*['\"]" --include="*.py" --include="*.ts" --include="*.js" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=__pycache__ | grep -v "example" | grep -v "template"; then
+          echo "⚠️  Potential hardcoded passwords found"
+          exit 1
+        else
+          echo "✅ No hardcoded passwords found"
+        fi
+
+        # Check for debug mode in production
+        if grep -r "DEBUG.*=.*True" --include="*.py" --include="*.env*" . --exclude-dir=.git; then
+          echo "⚠️  Debug mode enabled in production files"
+        fi
+
+        # Check file permissions
+        echo "📁 Checking file permissions..."
+        find . -name "*.sh" -o -name "*.py" -o -name "*.js" | head -10
+
+  # Compliance Documentation Check
+  compliance-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check compliance documentation
+      run: |
+        echo "📋 Checking compliance documentation..."
+
+        # Check for security-related files
+        files_to_check=("SECURITY.md" "COMPLIANCE.md" "AUDIT.md" "README.md")
+        for file in "${files_to_check[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists"
+          else
+            echo "⚠️  $file missing"
+          fi
+        done
+
+        # Check for license information
+        if grep -q "license\|License" README.md; then
+          echo "✅ License information found in README"
+        else
+          echo "⚠️  No license information in README"
+        fi
+
+        # Check for security contact
+        if grep -q "security\|Security" README.md; then
+          echo "✅ Security information found in README"
+        else
+          echo "⚠️  No security information in README"
+        fi
