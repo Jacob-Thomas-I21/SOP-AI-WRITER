@@ -1,0 +1,351 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with pharmaceutical compliance
+  postgres:
+    image: postgres:15-alpine
+    container_name: sop-pharmaceutical-postgres
+    environment:
+      POSTGRES_DB: sop_author
+      POSTGRES_USER: pharmaceutical_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_pharma_password_2024}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./configs/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./configs/postgres-pharma-config.sql:/docker-entrypoint-initdb.d/02-pharma-config.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - pharmaceutical-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pharmaceutical_user -d sop_author"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "pharmaceutical.service=database"
+      - "gmp.compliance=validated"
+      - "data.integrity=high"
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: sop-pharmaceutical-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_pharma_password_2024}
+    volumes:
+      - redis_data:/data
+      - ./configs/redis.conf:/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    networks:
+      - pharmaceutical-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "pharmaceutical.service=cache"
+      - "session.management=enabled"
+
+  # Ollama AI Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sop-pharmaceutical-ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_MODELS_DIR: /ollama/models
+      PHARMACEUTICAL_AI_MODE: enabled
+      FDA_COMPLIANCE_PROMPTS: true
+    volumes:
+      - ollama_models:/ollama/models
+      - ./configs/ollama-pharma-config.json:/etc/ollama/config.json:ro
+    ports:
+      - "11434:11434"
+    networks:
+      - pharmaceutical-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "pharmaceutical.service=ai-engine"
+      - "model.type=ollama"
+      - "gmp.ai.validated=true"
+
+  # Backend API Service
+  backend:
+    build:
+      context: ../../
+      dockerfile: local-deployment/docker/Dockerfile.backend
+      args:
+        APP_VERSION: ${APP_VERSION:-1.0.0}
+        BUILD_DATE: ${BUILD_DATE}
+        VCS_REF: ${VCS_REF}
+    container_name: sop-pharmaceutical-backend
+    environment:
+      DATABASE_URL: postgresql://pharmaceutical_user:${POSTGRES_PASSWORD:-secure_pharma_password_2024}@postgres:5432/sop_author
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_pharma_password_2024}@redis:6379/0
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: llama2:7b-chat
+      SECRET_KEY: ${SECRET_KEY:-pharmaceutical-sop-secret-key-production-change-me}
+      PHARMACEUTICAL_ENVIRONMENT: production
+      FDA_COMPLIANCE_MODE: enabled
+      GMP_VALIDATION: true
+      LOG_LEVEL: INFO
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173,https://yourdomain.com
+    volumes:
+      - backend_logs:/app/logs
+      - backend_uploads:/app/uploads
+      - backend_pdfs:/app/pdfs
+      - backend_cache:/app/cache
+      - ./configs/backend-production.env:/app/.env:ro
+    ports:
+      - "9000:9000"
+    networks:
+      - pharmaceutical-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "pharmaceutical.service=api"
+      - "fda.compliance=21-cfr-part-11"
+      - "gmp.validated=true"
+      - "data.integrity=alcoa-plus"
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ../../
+      dockerfile: local-deployment/docker/Dockerfile.frontend
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:9000}
+        REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:9000}
+        REACT_APP_PHARMACEUTICAL_MODE: enabled
+        REACT_APP_FDA_COMPLIANCE: true
+    container_name: sop-pharmaceutical-frontend
+    environment:
+      NODE_ENV: production
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:9000}
+      REACT_APP_PHARMACEUTICAL_MODE: enabled
+      REACT_APP_FDA_COMPLIANCE: true
+    ports:
+      - "3000:3000"
+    networks:
+      - pharmaceutical-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "pharmaceutical.service=frontend"
+      - "ui.pharma.optimized=true"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: sop-pharmaceutical-nginx
+    volumes:
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs/nginx-pharma.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+      - letsencrypt_certs:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - pharmaceutical-network
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "pharmaceutical.service=proxy"
+      - "ssl.enabled=true"
+      - "security.headers=enabled"
+
+  # Monitoring with Prometheus (for pharmaceutical compliance)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sop-pharmaceutical-prometheus
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - pharmaceutical-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=90d'
+    labels:
+      - "pharmaceutical.service=monitoring"
+      - "compliance.metrics=enabled"
+
+  # Grafana for pharmaceutical dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sop-pharmaceutical-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-pharmaceutical_dashboard_2024}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_DOMAIN: ${DOMAIN:-localhost}
+      GF_SERVER_ROOT_URL: https://${DOMAIN:-localhost}/grafana/
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./configs/grafana-datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - pharmaceutical-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    labels:
+      - "pharmaceutical.service=dashboard"
+      - "compliance.visualization=enabled"
+
+  # Backup service for pharmaceutical data retention
+  backup:
+    image: alpine:latest
+    container_name: sop-pharmaceutical-backup
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_pharma_password_2024}
+      BACKUP_RETENTION_DAYS: 2555  # 7 years for pharmaceutical compliance
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+    volumes:
+      - backup_data:/backups
+      - ./scripts/backup-pharma.sh:/backup.sh:ro
+    networks:
+      - pharmaceutical-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    command: sh -c "crond -f"
+    labels:
+      - "pharmaceutical.service=backup"
+      - "retention.period=7-years"
+      - "compliance.backup=fda-required"
+
+# Pharmaceutical compliance volumes
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      pharmaceutical.data: "primary-database"
+      retention.period: "7-years"
+      
+  redis_data:
+    driver: local
+    labels:
+      pharmaceutical.data: "session-cache"
+      
+  ollama_models:
+    driver: local
+    labels:
+      pharmaceutical.data: "ai-models"
+      
+  backend_logs:
+    driver: local
+    labels:
+      pharmaceutical.data: "audit-logs"
+      retention.period: "7-years"
+      
+  backend_uploads:
+    driver: local
+    labels:
+      pharmaceutical.data: "uploads"
+      
+  backend_pdfs:
+    driver: local
+    labels:
+      pharmaceutical.data: "generated-pdfs"
+      
+  backend_cache:
+    driver: local
+    
+  nginx_logs:
+    driver: local
+    labels:
+      pharmaceutical.data: "access-logs"
+      retention.period: "7-years"
+      
+  prometheus_data:
+    driver: local
+    labels:
+      pharmaceutical.data: "metrics"
+      retention.period: "90-days"
+      
+  grafana_data:
+    driver: local
+    labels:
+      pharmaceutical.data: "dashboards"
+      
+  backup_data:
+    driver: local
+    labels:
+      pharmaceutical.data: "backups"
+      retention.period: "7-years"
+      
+  letsencrypt_certs:
+    driver: local
+
+# Pharmaceutical network
+networks:
+  pharmaceutical-network:
+    driver: bridge
+    labels:
+      pharmaceutical.network: "secure-internal"
+      encryption.enabled: "true"
+
+# Pharmaceutical compliance metadata
+x-pharmaceutical-compliance:
+  fda_21_cfr_part_11: "compliant"
+  gmp_guidelines: "implemented"  
+  data_integrity: "alcoa_plus"
+  audit_trail: "complete"
+  retention_period: "7_years"
+  backup_strategy: "automated"
+  monitoring: "enabled"
+  security: "hardened"
