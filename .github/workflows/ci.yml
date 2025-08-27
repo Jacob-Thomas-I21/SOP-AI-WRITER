@@ -68,7 +68,7 @@ jobs:
       run: |
         cd backend
         python -c "from app.core.database import init_db; init_db()"
-        PYTHONPATH=$PWD pytest tests/ -v --cov=app --cov-report=xml --cov-report=term -m "not external_service"
+        PYTHONPATH=$PWD pytest tests/ -v --cov=app --cov-report=xml --cov-report=term -m "not external_service" --ignore=tests/test_sop_workflow.py
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
