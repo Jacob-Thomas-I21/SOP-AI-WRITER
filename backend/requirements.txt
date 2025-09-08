@@ -21,7 +21,7 @@ ollama==0.1.7
 datasets==2.14.7
 transformers==4.36.2
 huggingface-hub==0.19.4
-beautifulsoup4==4.12.2
+beautifulsoup4==4.13.5
 lxml==4.9.4
 pandas==2.1.4
 numpy==1.25.2
